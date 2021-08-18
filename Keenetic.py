@@ -351,11 +351,6 @@ class Keenetic:
         else:
             print("Şimdilik bunu yapamıyorum")
         
-
-
-
-
-
     def __pressSave(self):
         self.__clickXY(84,586)
 
