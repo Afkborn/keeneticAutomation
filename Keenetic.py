@@ -256,7 +256,7 @@ class Keenetic:
         else:
             print("login error")
 
-    def changeWifiName(self,segmentAdi,yeniWifiAdi):
+    def changeWifiName(self,segmentAdi,newWifiName):
         aktifWifi = self.getWifiBasic(segmentAdi)
         aktifWifiName = aktifWifi.getWifiName()
         aktifSegment = aktifWifi.getSegment()
@@ -267,19 +267,98 @@ class Keenetic:
         agAdı.click()
         for _ in range(len(aktifWifiName)):
             agAdı.send_keys(Keys.BACK_SPACE)
-        agAdı.send_keys(yeniWifiAdi)
+        agAdı.send_keys(newWifiName)
         sleep(0.2)
         self.__pressSave()
-        print(f"Succesfull! old wifi name: {aktifWifiName}, new wifi name: {yeniWifiAdi}")
+        print(f"Succesfull! old wifi name: {aktifWifiName}, new wifi name: {newWifiName}")
+
+    def changeWifiPassword(self,segmentAdi,newPassword):
+        aktifWifi = self.getWifiBasic(segmentAdi)
+        aktifWifiPass = aktifWifi.getPassword()
+        aktifSegment = aktifWifi.getSegment()
+        aktifUrl = aktifSegment.getUrl()
+        self.browser.get(aktifUrl)
+        sleep(2)
+        agKorumasi = self.browser.find_element_by_xpath('//*[@id="sb-8"]/a/div/span/div').text
+        if agKorumasi == "Güvenlik yok" or agKorumasi == "OWE":
+            print("You can't change wifi password, first change network protection.")
+            yn = input("Do you want me to do it? (y/Y or n/N): ")
+            if yn == "y" or yn == "Y":
+                self.changeWifiProtectionLevel(segmentAdi,5)
+
+
+        else:
+            agPassword = self.browser.find_element_by_xpath('//*[@id="cp-main-container"]/div[1]/div[1]/div[1]/div/div[2]/div/form/fieldset/div[2]/div/div[2]/div[3]/fieldset/div[3]/div/div[2]/label[1]/input')
+            agPassword.click()
+            for _ in range(len(aktifWifiPass)):
+                agPassword.send_keys(Keys.BACK_SPACE)
+            agPassword.send_keys(newPassword)
+            sleep(0.2)
+            self.__pressSave()
+            print(f"Succesfull! old wifi password: {aktifWifiPass}, new wifi password: {newPassword}")
+
+    def changeWifiProtectionLevel(self,segmentAdi,protectionLevel):
+        """Change wifi proction level, recommended level 5.\n
+        0, No security\n1, WEP\n2, WPA-PSK\n3, WPA2-PSK\n4, WPA-PSK + WPA2-PSK\n5, WPA2-PSK + WPA3-PSK\n6, WPA3-PSK\n7, OWE\n"""
+        protectionLevelDict = {
+            0: "disable",
+            1: "wep",
+            2: "wpa",
+            3: "wpa2",
+            4: "wpa+wpa2",
+            5: "wpa2+wpa3",
+            6: "wpa3",
+            7: "owe"
+        }
+        Front = {
+            0: "No security",
+            1: "WEP",
+            2: "WPA-PSK",
+            3: "WPA2-PSK",
+            4: "WPA-PSK + WPA2-PSK",
+            5: "WPA2-PSK + WPA3-PSK",
+            6: "WPA3-PSK",
+            7: "OWE"
+        }
+        aktifWifi = self.getWifiBasic(segmentAdi)
+        aktifSegment = aktifWifi.getSegment()
+        aktifUrl = aktifSegment.getUrl()
+        self.browser.get(aktifUrl)
+        sleep(3)
+        protectionSide = self.browser.find_element_by_xpath('/html/body/ndm-layout/div/div[2]/div[2]/div/div/div/div[1]/div[1]/div[1]/div/div[2]/div/form/fieldset/div[2]/div/div[2]/div[3]/fieldset/div[2]/div/div[2]/div/div/a')
+        oldProtectionLevel = protectionSide.text
+        protectionSide.click()
+        protectionLi = self.browser.find_element_by_xpath('/html/body/ndm-layout/div/div[2]/div[2]/div/div/div/div[1]/div[1]/div[1]/div/div[2]/div/form/fieldset/div[2]/div/div[2]/div[3]/fieldset/div[2]/div/div[2]/div/div/ul').find_elements_by_css_selector("li")
+        tiklanacakObjke = None
+        for i in protectionLi:
+            protectionLevelBrowser = i.get_attribute('data-ndm-option-value')
+            if protectionLevelBrowser == protectionLevelDict[protectionLevel]:
+                tiklanacakObjke = i
+        tiklanacakObjke.click()
+        if (oldProtectionLevel == 'Güvenlik yok' or oldProtectionLevel == 'OWE' or oldProtectionLevel == 'WEP' ) and (Front[protectionLevel] != "WEP" or Front[protectionLevel] != "OWE" or Front[protectionLevel] != "Güvenlik yok"):
+            passSide = self.browser.find_element_by_xpath('/html/body/ndm-layout/div/div[2]/div[2]/div/div/div/div[1]/div[1]/div[1]/div/div[2]/div/form/fieldset/div[2]/div/div[2]/div[3]/fieldset/div[3]/div/div[2]/label[1]/input')
+            passSide.click()
+            wifiPass = input("New password for new security level: ")
+            passSide.send_keys(wifiPass)
+            self.__pressSave()
+            print(f"Succesfull! old wifi protection level: {oldProtectionLevel}, new protection level: {Front[protectionLevel]}")
+        elif (oldProtectionLevel != 'Güvenlik yok' or oldProtectionLevel != 'OWE'  or oldProtectionLevel != 'WEP') and Front[protectionLevel] != "WEP":
+            self.__pressSave()
+            print(f"Succesfull! old wifi protection level: {oldProtectionLevel}, new protection level: {Front[protectionLevel]}")
+        elif (oldProtectionLevel == 'Güvenlik yok' or oldProtectionLevel == 'OWE' or oldProtectionLevel == 'WEP') and (Front[protectionLevel] == "OWE" or Front[protectionLevel] == "Güvenlik yok"):
+            self.__pressSave()
+            print(f"Succesfull! old wifi protection level: {oldProtectionLevel}, new protection level: {Front[protectionLevel]}")
+        else:
+            print("Şimdilik bunu yapamıyorum")
+        
+
+
+
+
 
     def __pressSave(self):
         self.__clickXY(84,586)
-        # kaydetXpath = '//*[@id="cp-main-container"]/div[1]/div[1]/div[1]/div/div[2]/div/div[2]/div/div/ndm-button/button'
-        # kaydetOjb = self.browser.find_element_by_xpath(kaydetXpath)
-        # loc = kaydetOjb.location
-        # x = loc['x']
-        # y = loc['y']
-        # self.__clickXY(x,y)
+
 
     def __clickXY(self,x,y):
         action = ActionChains(self.browser)
