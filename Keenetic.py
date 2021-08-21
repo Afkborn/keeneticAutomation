@@ -10,6 +10,7 @@ from datetime import datetime as dt
 from os import getcwd
 from Python.Wifi import Wifi
 from Python.Segment import Segment
+from Python.Network import Network
 
 ADSLMARGINCB = '//*[@id="cp-main-container"]/div/div[1]/div[1]/div/div[2]/div/form/div[4]/ng-include/ndm-details/div/div[2]/fieldset/div[2]/ndm-selectbox2/div/div[2]/a/div'
 VDSLMARGINCB = '//*[@id="cp-main-container"]/div/div[1]/div[1]/div/div[2]/div/form/div[4]/ng-include/ndm-details/div/div[2]/fieldset/div[3]/ndm-selectbox2/div/div[2]/a/div'
@@ -56,16 +57,19 @@ class Keenetic:
         self.__username = username
         self.__password = password
         sleep(2)
-        usernameInput = self.browser.find_element_by_xpath('/html/body/ndm-layout/div/div/div/div/section/div[1]/div[1]/div/section[2]/form/div[1]/div/div[3]/div/div[1]/label[1]/input')
-        passwordInput = self.browser.find_element_by_xpath('/html/body/ndm-layout/div/div/div/div/section/div[1]/div[1]/div/section[2]/form/div[2]/div/div[3]/div/div[1]/label[1]/input')
-        usernameInput.send_keys(self.__username)
-        passwordInput.send_keys(self.__password)
-        sleep(0.1)
-        loginButton = self.browser.find_element_by_xpath('/html/body/ndm-layout/div/div/div/div/section/div[1]/div[1]/div/section[2]/form/ndm-button/button')
-        loginButton.click()
-        sleep(2)
         if self.browser.current_url == 'http://192.168.1.1/dashboard':
             self.__isLogin = True
+        else:
+            usernameInput = self.browser.find_element_by_xpath('/html/body/ndm-layout/div/div/div/div/section/div[1]/div[1]/div/section[2]/form/div[1]/div/div[3]/div/div[1]/label[1]/input')
+            passwordInput = self.browser.find_element_by_xpath('/html/body/ndm-layout/div/div/div/div/section/div[1]/div[1]/div/section[2]/form/div[2]/div/div[3]/div/div[1]/label[1]/input')
+            usernameInput.send_keys(self.__username)
+            passwordInput.send_keys(self.__password)
+            sleep(0.1)
+            loginButton = self.browser.find_element_by_xpath('/html/body/ndm-layout/div/div/div/div/section/div[1]/div[1]/div/section[2]/form/ndm-button/button')
+            loginButton.click()
+            sleep(2)
+            if self.browser.current_url == 'http://192.168.1.1/dashboard':
+                self.__isLogin = True
 
     def getSNRMargin(self) -> tuple():
         """Return vdslMargin, adslMargin as int. Login required."""
@@ -353,6 +357,52 @@ class Keenetic:
         
     def __pressSave(self):
         self.__clickXY(84,586)
+
+    def getNetworkStatDetail(self):
+        if self.__isLogin:
+            if self.browser.current_url != 'http://192.168.1.1/dashboard':
+                self.browser.get('http://192.168.1.1/dashboard')
+                sleep(2)
+            sleep(2)
+            dahaFazlaGosterXPATH = '//*[@id="card_internet"]/div[2]/div/ndm-details/div/div[1]/a/span'
+            self.browser.find_element_by_xpath(dahaFazlaGosterXPATH).click()
+            
+            stat = self.browser.find_element_by_xpath('//*[@id="card_internet"]/div[2]/div/ndm-details/div/div[2]/div/ul/li[1]/span[2]/span[1]/span').text
+            
+            if stat == "Bağlantı kuruldu":
+                stat = True
+            else:
+                stat = False
+            
+            
+            security = self.browser.find_element_by_xpath('//*[@id="card_internet"]/div[2]/div/ndm-details/div/div[2]/div/ul/li[2]/span[2]/span[1]/span').text
+            if security == 'Devre dışı':
+                security = None
+            elif security == 'AdGuard DNS etkin':
+                security = "AdGuard DNS"
+            else:
+                security = "SafeDNS"
+            
+            authType = self.browser.find_element_by_xpath('//*[@id="card_internet"]/div[2]/div/ndm-details/div/div[2]/div/ul/li[3]/span[2]/span').text
+            ip = self.browser.find_element_by_xpath('//*[@id="card_internet"]/div[2]/div/ndm-details/div/div[2]/div/ul/li[4]/span[2]/span').text
+            subnetMask = self.browser.find_element_by_xpath('//*[@id="card_internet"]/div[2]/div/ndm-details/div/div[2]/div/ul/li[5]/span[2]/span').text
+            
+            speed = self.browser.find_element_by_xpath('//*[@id="card_internet"]/div[2]/div/ndm-details/div/div[2]/div/ul/li[7]/span[2]/span').text
+            definedDownloadSpeed, definedUploadSpeed = speed.replace('kbit/s',"").split("/")
+
+            noise = self.browser.find_element_by_xpath('//*[@id="card_internet"]/div[2]/div/ndm-details/div/div[2]/div/ul/li[8]/span[2]/span').text
+            noiseDownload, noiseUpload = noise.replace('dB',"").split("/")
+
+            signalStrengh = self.browser.find_element_by_xpath('//*[@id="card_internet"]/div[2]/div/ndm-details/div/div[2]/div/ul/li[9]/span[2]/span').text
+            signalStrenghDownload, signalStrenghUpload = signalStrengh.replace("dBm","").split("/")
+
+            signalAttenuation = self.browser.find_element_by_xpath('//*[@id="card_internet"]/div[2]/div/ndm-details/div/div[2]/div/ul/li[10]/span[2]/span').text
+            signalAttenuationDownload, signalAttenuationUpload = signalAttenuation.replace("dB","").split("/")
+
+            macAdress = self.browser.find_element_by_xpath('//*[@id="card_internet"]/div[2]/div/ndm-details/div/div[2]/div/ul/li[11]/span[2]/span').text
+
+            self.network = Network(stat,security,authType,ip,subnetMask,definedDownloadSpeed,definedUploadSpeed,noiseDownload,noiseUpload,signalStrenghDownload,signalStrenghUpload,signalAttenuationDownload,signalAttenuationUpload,macAdress)
+            self.network.printDetail()
 
 
     def __clickXY(self,x,y):
